@@ -118,7 +118,7 @@ int main() {
 
 			  check_car_s += ((double)prev_size*0.02*check_speed);
 
-			  std::cout << "Index: " << i << " Checking lane: " << check_car_lane_num << " car lane: " << lane_num << "check_car_s: " << check_car_s << " car_s: " << car_s << " diff: " << abs(check_car_s - car_s) << " d: " << d << std::endl;
+			  //std::cout << "Index: " << i << " Checking lane: " << check_car_lane_num << " car lane: " << lane_num << "check_car_s: " << check_car_s << " car_s: " << car_s << " diff: " << abs(check_car_s - car_s) << " d: " << d << std::endl;
 
 			  if (d<(2 + 4 * lane_num + 2) && d >(2 + 4 * lane_num - 2))
 			  {
@@ -128,11 +128,9 @@ int main() {
 					  //ref_vel = check_speed;
 					  too_close = true;
 					  prepare_lane_change = true;
-					  std::cout << "...prepare for lane change..." << std::endl;
+					  //std::cout << "...prepare for lane change..." << std::endl;
 				  }
 			  }
-			  //else 
-			  //{
 			  //std::cout << "Index: " << i << " Processing lane: " << check_car_lane_num << " car lane: " << lane_num << std::endl;
 			  if (prepare_lane_change && abs(check_car_lane_num - lane_num) <= 1)
 			  {
@@ -143,16 +141,15 @@ int main() {
 					  if (d > (4 + 4 * lane_num))
 					  {
 						  right_lane_occupied = true;
-						  std::cout << ">>>> right lane occupiled wrt: " << lane_num << std::endl;
+						  //std::cout << ">>>> right lane occupiled wrt: " << lane_num << std::endl;
 					  }
 					  else if (d < (4 * lane_num))
 					  {
 						  left_lane_occupied = true;
-						  std::cout << "<<<< left lane occupiled wrt: " << lane_num << std::endl;
+						  //std::cout << "<<<< left lane occupiled wrt: " << lane_num << std::endl;
 					  }
 				  }
 			  }
-			  //}
 		  }
 
 		  if (too_close)
@@ -161,21 +158,25 @@ int main() {
 		  }
 		  else if (ref_vel < 49.5)
 		  {
-			  ref_vel += 0.224;
+			  ref_vel += 0.112;
 		  }
 
 		  if (prepare_lane_change)
 		  {
-			  std::cout << ".. Should change the lane... " << std::endl;
+			  //std::cout << ".. Should change the lane... " << std::endl;
 			  if (!left_lane_occupied && lane_num != 0)
 			  {
 				  lane_num -= 1;
-				  std::cout << "<<== changing to left lane # " << lane_num << std::endl;
+				  //std::cout << "<<== changing to left lane # " << lane_num << std::endl;
 			  }
 			  else if (!right_lane_occupied && lane_num != 2)
 			  {
 				  lane_num += 1;
-				  std::cout << "==>> changing to right lane # " << lane_num << std::endl;
+				  //std::cout << "==>> changing to right lane # " << lane_num << std::endl;
+			  }
+			  else
+			  {
+				  prepare_lane_change = false;
 			  }
 		  }
 
@@ -264,13 +265,13 @@ int main() {
 			  next_y_vals.push_back(previous_path_y[i]);
 		  }
 
-		  double target_x = 40.0;
+		  double target_x = 30.0;
 		  double target_y = s(target_x);
 		  double target_dist = sqrt((target_x*target_x) + (target_y*target_y));
 
 		  double x_add_on = 0.0;
 
-		  for (int i = 1; i <= 60-previous_path_x.size(); i++)
+		  for (int i = 1; i <= 40-previous_path_x.size(); i++)
 		  {
 			  double N = (target_dist / (0.02*ref_vel / 2.24));
 			  double x_point = x_add_on + (target_x) / N;
