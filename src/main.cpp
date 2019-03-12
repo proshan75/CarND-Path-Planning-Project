@@ -119,36 +119,28 @@ int main() {
 
 			  check_car_s += ((double)prev_size*0.02*check_speed);
 
-			  //std::cout << "Index: " << i << " Checking lane: " << check_car_lane_num << " car lane: " << lane_num << "check_car_s: " << check_car_s << " car_s: " << car_s << " diff: " << abs(check_car_s - car_s) << " d: " << d << std::endl;
-
-			  if (d<(2 + 4 * lane_num + 3) && d >(2 + 4 * lane_num - 3))
+			  if (d<(4 + 4 * lane_num) && d >(4 * lane_num))
 			  {
-				  //std::cout << "Index: " << i << " Same lane: " << check_car_lane_num << " car lane: " << lane_num << std::endl;
 				  if ((check_car_s > car_s) && (check_car_s - car_s) < 30)
 				  {
-					  //ref_vel = check_speed;
 					  too_close = true;
 					  prepare_lane_change = true;
 					  check_car_speed = check_speed;
-					  //std::cout << "...prepare for lane change..." << std::endl;
 				  }
 			  }
-			  //std::cout << "Index: " << i << " Processing lane: " << check_car_lane_num << " car lane: " << lane_num << std::endl;
-			  if (prepare_lane_change && abs(check_car_lane_num - lane_num) == 1)
+
+			  if (prepare_lane_change && abs(check_car_lane_num - lane_num) == 1) 
 			  {
-				  //std::cout << "check_car_s: " << check_car_s << " car_s: " << car_s << " abs(check_car_s - car_s): " << abs(check_car_s - car_s) << " d: " << d << std::endl;
-				  if ( ((check_car_s > car_s) && abs(check_car_s - car_s) < 40) || 
-					  ((car_s > check_car_s) && abs(car_s - check_car_s) < 80))
+				  if ( ((check_car_s > car_s) && abs(check_car_s - car_s) < 30) || 
+					  ((car_s > check_car_s) && abs(car_s - check_car_s) < 50))
 				  {
 					  if (d > (4 + 4 * lane_num) && d < (4 + 4 * lane_num + 4))
 					  {
 						  right_lane_occupied = true;
-						  //std::cout << ">>>> right lane occupiled wrt: " << lane_num << std::endl;
 					  }
 					  if (d > (4 * lane_num - 4) && d < (4 * lane_num))
 					  {
 						  left_lane_occupied = true;
-						  //std::cout << "<<<< left lane occupiled wrt: " << lane_num << std::endl;
 					  }
 				  }
 			  }
@@ -156,37 +148,32 @@ int main() {
 
 		  if (too_close)
 		  {
-			  ref_vel -= 0.224;
-			  if (ref_vel < check_car_speed)
-				  ref_vel = check_car_speed;
+			  if (prepare_lane_change)
+			  {
+				  if (!left_lane_occupied && lane_num > 0)
+				  {
+					  lane_num -= 1; // change to left lane
+				  }
+				  else if (!right_lane_occupied && lane_num < 2)
+				  {
+					  lane_num += 1;// change to right lane
+				  }
+				  else
+				  {
+					  ref_vel -= 0.224;
+					  if (ref_vel < check_car_speed)
+						  ref_vel = check_car_speed;
+
+					  left_lane_occupied = true;
+					  right_lane_occupied = true;
+					  prepare_lane_change = false;
+				  }
+			  }
 		  }
 		  else if (ref_vel < 49.5)
 		  {
 			  ref_vel += 0.224;
 		  }
-
-		  if (prepare_lane_change)
-		  {
-			  //std::cout << ".. Should change the lane from... " << lane_num << std::endl;
-			  if (!left_lane_occupied && lane_num > 0)
-			  {
-				  lane_num -= 1;
-				  //std::cout << "<<== changing to left lane # " << lane_num << std::endl;
-			  }
-			  else if (!right_lane_occupied && lane_num < 2)
-			  {
-				  lane_num += 1;
-				  //std::cout << "==>> changing to right lane # " << lane_num << std::endl;
-			  }
-			  else
-			  {
-				  //std::cout << std::boolalpha << "left_lane_occupied: " << left_lane_occupied << " right_lane_occupied: " << right_lane_occupied << " lane_num: " << lane_num << std::endl;
-				  left_lane_occupied = true;
-				  right_lane_occupied = true;
-				  prepare_lane_change = false;
-			  }
-		  }
-
 
           json msgJson;
 
@@ -261,14 +248,8 @@ int main() {
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
-		  double dist_inc = 0.5;
 		  for (int i = 0; i < previous_path_x.size(); ++i) 
 		  {
-			  //double next_s = car_s + (i+1) * dist_inc;
-			  //double next_d = 6;
-			  //vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-			  //next_x_vals.push_back(xy[0]);
-			  //next_y_vals.push_back(xy[1]);
 			  next_x_vals.push_back(previous_path_x[i]);
 			  next_y_vals.push_back(previous_path_y[i]);
 		  }
@@ -279,7 +260,7 @@ int main() {
 
 		  double x_add_on = 0.0;
 
-		  for (int i = 1; i <= 50-previous_path_x.size(); i++)
+		  for (int i = 1; i <= 60-previous_path_x.size(); i++)
 		  {
 			  double N = (target_dist / (0.02*ref_vel / 2.24));
 			  double x_point = x_add_on + (target_x) / N;
