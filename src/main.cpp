@@ -106,6 +106,13 @@ int main() {
 		  bool right_lane_occupied = false;
 		  double check_car_speed = 49.5;
 
+		  if (car_d < 4 && car_d >0)
+			  lane_num = 0;
+		  else if (car_d < 8 && car_d >4)
+			  lane_num = 1;
+		  else if (car_d > 8 && car_d < 12)
+			  lane_num = 2;
+
 		  for (int i = 0; i < sensor_fusion.size(); i++)
 		  {
 			  float d = sensor_fusion[i][6];
