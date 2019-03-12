@@ -104,6 +104,7 @@ int main() {
 		  bool prepare_lane_change = false;
 		  bool left_lane_occupied = false;
 		  bool right_lane_occupied = false;
+		  double check_car_speed = 49.5;
 
 		  for (int i = 0; i < sensor_fusion.size(); i++)
 		  {
@@ -128,6 +129,7 @@ int main() {
 					  //ref_vel = check_speed;
 					  too_close = true;
 					  prepare_lane_change = true;
+					  check_car_speed = check_speed;
 					  //std::cout << "...prepare for lane change..." << std::endl;
 				  }
 			  }
@@ -135,18 +137,18 @@ int main() {
 			  if (prepare_lane_change && abs(check_car_lane_num - lane_num) <= 1)
 			  {
 				  //std::cout << "check_car_s: " << check_car_s << " car_s: " << car_s << " abs(check_car_s - car_s): " << abs(check_car_s - car_s) << " d: " << d << std::endl;
-				  if ( ((check_car_s > car_s) && (check_car_s - car_s) < 50) || 
-					  ((car_s > check_car_s) && (car_s - check_car_s) < 60))
+				  if ( ((check_car_s > car_s) && (check_car_s - car_s) < 40) || 
+					  ((car_s > check_car_s) && (car_s - check_car_s) < 50))
 				  {
-					  if (d > (4 + 4 * lane_num))
+					  if (d > (4 + 4 * lane_num) && d < (4 + 4 * lane_num + 4))
 					  {
 						  right_lane_occupied = true;
-						  //std::cout << ">>>> right lane occupiled wrt: " << lane_num << std::endl;
+						  std::cout << ">>>> right lane occupiled wrt: " << lane_num << std::endl;
 					  }
-					  else if (d < (4 * lane_num))
+					  if (d > (4 * lane_num - 4) && d < (4 * lane_num))
 					  {
 						  left_lane_occupied = true;
-						  //std::cout << "<<<< left lane occupiled wrt: " << lane_num << std::endl;
+						  std::cout << "<<<< left lane occupiled wrt: " << lane_num << std::endl;
 					  }
 				  }
 			  }
@@ -155,27 +157,30 @@ int main() {
 		  if (too_close)
 		  {
 			  ref_vel -= 0.224;
+			  if (ref_vel < check_car_speed)
+				  ref_vel = check_car_speed;
 		  }
 		  else if (ref_vel < 49.5)
 		  {
-			  ref_vel += 0.112;
+			  ref_vel += 0.224;
 		  }
 
 		  if (prepare_lane_change)
 		  {
-			  //std::cout << ".. Should change the lane... " << std::endl;
-			  if (!left_lane_occupied && lane_num != 0)
+			  std::cout << ".. Should change the lane from... " << lane_num << std::endl;
+			  if (!left_lane_occupied && lane_num > 0)
 			  {
 				  lane_num -= 1;
-				  //std::cout << "<<== changing to left lane # " << lane_num << std::endl;
+				  std::cout << "<<== changing to left lane # " << lane_num << std::endl;
 			  }
-			  else if (!right_lane_occupied && lane_num != 2)
+			  else if (!right_lane_occupied && lane_num < 2)
 			  {
 				  lane_num += 1;
-				  //std::cout << "==>> changing to right lane # " << lane_num << std::endl;
+				  std::cout << "==>> changing to right lane # " << lane_num << std::endl;
 			  }
 			  else
 			  {
+				  std::cout << std::boolalpha << "left_lane_occupied: " << left_lane_occupied << " right_lane_occupied: " << right_lane_occupied << " lane_num: " << lane_num << std::endl;
 				  prepare_lane_change = false;
 			  }
 		  }
@@ -221,20 +226,18 @@ int main() {
 		  }
 
 		  double lane_dist = 2 + (4 * lane_num);
-		  vector<double> next_wp0 = getXY(car_s + 25, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-		  vector<double> next_wp1 = getXY(car_s + 50, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-		  vector<double> next_wp2 = getXY(car_s + 75, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-		  vector<double> next_wp3 = getXY(car_s + 100, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+		  vector<double> next_wp0 = getXY(car_s + 30, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+		  vector<double> next_wp1 = getXY(car_s + 60, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+		  vector<double> next_wp2 = getXY(car_s + 90, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
 		  ptsx.push_back(next_wp0[0]);
 		  ptsx.push_back(next_wp1[0]);
 		  ptsx.push_back(next_wp2[0]);
-		  ptsx.push_back(next_wp3[0]);
 
 		  ptsy.push_back(next_wp0[1]);
 		  ptsy.push_back(next_wp1[1]);
 		  ptsy.push_back(next_wp2[1]);
-		  ptsy.push_back(next_wp3[1]);
 
 		  for (int i = 0; i < ptsx.size(); i++)
 		  {
@@ -271,7 +274,7 @@ int main() {
 
 		  double x_add_on = 0.0;
 
-		  for (int i = 1; i <= 40-previous_path_x.size(); i++)
+		  for (int i = 1; i <= 50-previous_path_x.size(); i++)
 		  {
 			  double N = (target_dist / (0.02*ref_vel / 2.24));
 			  double x_point = x_add_on + (target_x) / N;
