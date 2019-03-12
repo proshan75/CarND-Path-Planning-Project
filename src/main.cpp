@@ -121,7 +121,7 @@ int main() {
 
 			  //std::cout << "Index: " << i << " Checking lane: " << check_car_lane_num << " car lane: " << lane_num << "check_car_s: " << check_car_s << " car_s: " << car_s << " diff: " << abs(check_car_s - car_s) << " d: " << d << std::endl;
 
-			  if (d<(2 + 4 * lane_num + 2) && d >(2 + 4 * lane_num - 2))
+			  if (d<(2 + 4 * lane_num + 3) && d >(2 + 4 * lane_num - 3))
 			  {
 				  //std::cout << "Index: " << i << " Same lane: " << check_car_lane_num << " car lane: " << lane_num << std::endl;
 				  if ((check_car_s > car_s) && (check_car_s - car_s) < 30)
@@ -134,21 +134,21 @@ int main() {
 				  }
 			  }
 			  //std::cout << "Index: " << i << " Processing lane: " << check_car_lane_num << " car lane: " << lane_num << std::endl;
-			  if (prepare_lane_change && abs(check_car_lane_num - lane_num) <= 1)
+			  if (prepare_lane_change && abs(check_car_lane_num - lane_num) == 1)
 			  {
 				  //std::cout << "check_car_s: " << check_car_s << " car_s: " << car_s << " abs(check_car_s - car_s): " << abs(check_car_s - car_s) << " d: " << d << std::endl;
-				  if ( ((check_car_s > car_s) && (check_car_s - car_s) < 40) || 
-					  ((car_s > check_car_s) && (car_s - check_car_s) < 50))
+				  if ( ((check_car_s > car_s) && abs(check_car_s - car_s) < 40) || 
+					  ((car_s > check_car_s) && abs(car_s - check_car_s) < 80))
 				  {
 					  if (d > (4 + 4 * lane_num) && d < (4 + 4 * lane_num + 4))
 					  {
 						  right_lane_occupied = true;
-						  std::cout << ">>>> right lane occupiled wrt: " << lane_num << std::endl;
+						  //std::cout << ">>>> right lane occupiled wrt: " << lane_num << std::endl;
 					  }
 					  if (d > (4 * lane_num - 4) && d < (4 * lane_num))
 					  {
 						  left_lane_occupied = true;
-						  std::cout << "<<<< left lane occupiled wrt: " << lane_num << std::endl;
+						  //std::cout << "<<<< left lane occupiled wrt: " << lane_num << std::endl;
 					  }
 				  }
 			  }
@@ -167,20 +167,22 @@ int main() {
 
 		  if (prepare_lane_change)
 		  {
-			  std::cout << ".. Should change the lane from... " << lane_num << std::endl;
+			  //std::cout << ".. Should change the lane from... " << lane_num << std::endl;
 			  if (!left_lane_occupied && lane_num > 0)
 			  {
 				  lane_num -= 1;
-				  std::cout << "<<== changing to left lane # " << lane_num << std::endl;
+				  //std::cout << "<<== changing to left lane # " << lane_num << std::endl;
 			  }
 			  else if (!right_lane_occupied && lane_num < 2)
 			  {
 				  lane_num += 1;
-				  std::cout << "==>> changing to right lane # " << lane_num << std::endl;
+				  //std::cout << "==>> changing to right lane # " << lane_num << std::endl;
 			  }
 			  else
 			  {
-				  std::cout << std::boolalpha << "left_lane_occupied: " << left_lane_occupied << " right_lane_occupied: " << right_lane_occupied << " lane_num: " << lane_num << std::endl;
+				  //std::cout << std::boolalpha << "left_lane_occupied: " << left_lane_occupied << " right_lane_occupied: " << right_lane_occupied << " lane_num: " << lane_num << std::endl;
+				  left_lane_occupied = true;
+				  right_lane_occupied = true;
 				  prepare_lane_change = false;
 			  }
 		  }
@@ -228,16 +230,19 @@ int main() {
 		  double lane_dist = 2 + (4 * lane_num);
 
 		  vector<double> next_wp0 = getXY(car_s + 30, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-		  vector<double> next_wp1 = getXY(car_s + 60, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-		  vector<double> next_wp2 = getXY(car_s + 90, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+		  vector<double> next_wp1 = getXY(car_s + 50, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+		  vector<double> next_wp2 = getXY(car_s + 70, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+		  vector<double> next_wp3 = getXY(car_s + 90, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
 		  ptsx.push_back(next_wp0[0]);
 		  ptsx.push_back(next_wp1[0]);
 		  ptsx.push_back(next_wp2[0]);
+		  ptsx.push_back(next_wp3[0]);
 
 		  ptsy.push_back(next_wp0[1]);
 		  ptsy.push_back(next_wp1[1]);
 		  ptsy.push_back(next_wp2[1]);
+		  ptsy.push_back(next_wp3[1]);
 
 		  for (int i = 0; i < ptsx.size(); i++)
 		  {
