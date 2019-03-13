@@ -1,6 +1,6 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
-   
+
 ### Simulator.
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).  
 
@@ -16,6 +16,162 @@ In this project your goal is to safely navigate around a virtual highway with ot
 Each waypoint in the list contains  [x,y,s,dx,dy] values. x and y are the waypoint's map coordinate position, the s value is the distance along the road to get to that waypoint in meters, the dx and dy values define the unit normal vector pointing outward of the highway loop.
 
 The highway's waypoints loop around so the frenet s value, distance along the road, goes from 0 to 6945.554.
+
+### Reflection
+The simulator provides real-time data for the main car and other vehicles. The section on Sensor Fusion Data provides details on the structure of the data provided. Using this information and the main car's speed/position we need to generate path to achieve the above stated goal.
+
+To implement this path planning project I followed the steps outlined in the project QA video.
+
+* To get started the vehicle speed is set and increased at a constant rate of 0.224 MPH until the vehicle reaches maximum speed allowed at 49.5 MPH.
+* In case another vehicle happens to be in the same lane and in front of the main car then perform path planning and lane change decision making.
+
+From the sensor fusion information on all vehicles, using the frenet coordinates first it is determined if the main is in the same lane as another vehicle. Then if the distance between the main car and the car in front is less than 30 m then prepare to lane change action is triggered. From the vehicle lists in sensror fusion data, Further comparison helps to determine if a vehicle is in left or right lane relative to the main car. That in turn used to pick the target lane. Following code snippet shows this implementation:
+
+```
+for (int i = 0; i < sensor_fusion.size(); i++)
+{
+  float d = sensor_fusion[i][6];
+  if (d < 0)
+    continue;
+  double vx = sensor_fusion[i][3];
+  double vy = sensor_fusion[i][4];
+  double check_speed = sqrt(vx*vx + vy*vy);
+  double check_car_s = sensor_fusion[i][5];
+  int check_car_lane_num = d / 4;
+
+  check_car_s += ((double)prev_size*0.02*check_speed);
+
+  if (d<(4 + 4 * lane_num) && d >(4 * lane_num))
+  {
+    if ((check_car_s > car_s) && (check_car_s - car_s) < 30)
+    {
+      too_close = true;
+      prepare_lane_change = true;
+      check_car_speed = check_speed;
+    }
+  }
+
+  if (prepare_lane_change && abs(check_car_lane_num - lane_num) == 1)
+  {
+    if ( ((check_car_s > car_s) && abs(check_car_s - car_s) < 30) ||
+      ((car_s > check_car_s) && abs(car_s - check_car_s) < 50))
+    {
+      if (d > (4 + 4 * lane_num) && d < (4 + 4 * lane_num + 4))
+      {
+        right_lane_occupied = true;
+      }
+      if (d > (4 * lane_num - 4) && d < (4 * lane_num))
+      {
+        left_lane_occupied = true;
+      }
+    }
+  }
+}
+```
+
+Lane selection is performed after checking if the adjacent is occupied or not. The lane number is incremented when right lane is not occupied, Similarly the lane number is decremented when left lane is not occupied. Additional checks are applied to restrict lane change on edge condition of lane zero or two.
+
+```
+if (too_close)
+{
+  if (prepare_lane_change)
+  {
+    if (!left_lane_occupied && lane_num > 0)
+    {
+      lane_num -= 1; // change to left lane
+    }
+    else if (!right_lane_occupied && lane_num < 2)
+    {
+      lane_num += 1;// change to right lane
+    }
+    else
+    {
+      ref_vel -= 0.224;
+      if (ref_vel < check_car_speed)
+        ref_vel = check_car_speed;
+
+      left_lane_occupied = true;
+      right_lane_occupied = true;
+      prepare_lane_change = false;
+    }
+  }
+}
+else if (ref_vel < 49.5)
+{
+  ref_vel += 0.224;
+}
+```
+
+Once decided to change the lane, the next step is to create smooth trajectory for the vehicle to perform safe and jerk-less maneuver. The trajectory generation using spline interpolation method helps produces path that assures the vehicle follows the waypoints. To formulate the path, the last two points from the previous path are picked. Additionally, four points are defined relative to the main car's s coordinate as shown below:
+
+```
+if (prev_size < 2)
+{
+  double prev_car_x = car_x - cos(car_yaw);
+  double prev_car_y = car_y - sin(car_yaw);
+
+  ptsx.push_back(prev_car_x);
+  ptsx.push_back(car_x);
+  ptsy.push_back(prev_car_y);
+  ptsy.push_back(car_y);
+}
+else
+{
+  ref_x = previous_path_x[prev_size - 1];
+  ref_y = previous_path_y[prev_size - 1];
+
+  double prev_ref_x = previous_path_x[prev_size - 2];
+  double prev_ref_y = previous_path_y[prev_size - 2];
+  ref_yaw = atan2 (ref_y - prev_ref_y, ref_x - prev_ref_x);
+
+  ptsx.push_back(prev_ref_x);
+  ptsx.push_back(ref_x);
+
+  ptsy.push_back(prev_ref_y);
+  ptsy.push_back(ref_y);
+
+}
+
+double lane_dist = 2 + (4 * lane_num);
+
+vector<double> next_wp0 = getXY(car_s + 30, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+vector<double> next_wp1 = getXY(car_s + 50, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+vector<double> next_wp2 = getXY(car_s + 70, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+vector<double> next_wp3 = getXY(car_s + 90, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+```      
+
+The remaining points are generated by extrapolating x coordinates based on the vehicle speed and then y coordinates computed using the spline method.
+
+```
+double target_x = 30.0;
+double target_y = s(target_x);
+double target_dist = sqrt((target_x*target_x) + (target_y*target_y));
+
+double x_add_on = 0.0;
+
+for (int i = 1; i <= 60-previous_path_x.size(); i++)
+{
+  double N = (target_dist / (0.02*ref_vel / 2.24));
+  double x_point = x_add_on + (target_x) / N;
+  double y_point = s(x_point);
+
+  x_add_on = x_point;
+
+  double x_ref = x_point;
+  double y_ref = y_point;
+
+  x_point = (x_ref*cos(ref_yaw) - y_ref*sin(ref_yaw));
+  y_point = (x_ref*sin(ref_yaw) + y_ref*cos(ref_yaw));
+
+  x_point += ref_x;
+  y_point += ref_y;
+
+  next_x_vals.push_back(x_point);
+  next_y_vals.push_back(y_point);
+}
+```
+
+The result of this approach produces the necessary paths and appropriate lane changing decision to drive the main car around the track mostly without any incidence.
 
 ## Basic Build Instructions
 
@@ -43,13 +199,13 @@ Here is the data provided from the Simulator to the C++ Program
 #### Previous path data given to the Planner
 
 //Note: Return the previous list but with processed points removed, can be a nice tool to show how far along
-the path has processed since last time. 
+the path has processed since last time.
 
 ["previous_path_x"] The previous list of x points previously given to the simulator
 
 ["previous_path_y"] The previous list of y points previously given to the simulator
 
-#### Previous path's end s and d values 
+#### Previous path's end s and d values
 
 ["end_path_s"] The previous list's last point's frenet s value
 
@@ -57,7 +213,7 @@ the path has processed since last time.
 
 #### Sensor Fusion Data, a list of all other car's attributes on the same side of the road. (No Noise)
 
-["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates. 
+["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates.
 
 ## Details
 
@@ -87,7 +243,7 @@ A really helpful resource for doing this project and creating smooth trajectorie
   * Run either `install-mac.sh` or `install-ubuntu.sh`.
   * If you install from source, checkout to commit `e94b6e1`, i.e.
     ```
-    git clone https://github.com/uWebSockets/uWebSockets 
+    git clone https://github.com/uWebSockets/uWebSockets
     cd uWebSockets
     git checkout e94b6e1
     ```
@@ -142,4 +298,3 @@ still be compilable with cmake and make./
 
 ## How to write a README
 A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
-
