@@ -101,7 +101,6 @@ int main() {
 		  }
 
 		  bool too_close = false;
-		  bool prepare_lane_change = false;
 		  bool left_lane_occupied = false;
 		  bool right_lane_occupied = false;
 		  double check_car_speed = 49.5;
@@ -131,22 +130,23 @@ int main() {
 				  if ((check_car_s > car_s) && (check_car_s - car_s) < 30)
 				  {
 					  too_close = true;
-					  prepare_lane_change = true;
 					  check_car_speed = check_speed;
 				  }
 			  }
 
-			  if (prepare_lane_change && abs(check_car_lane_num - lane_num) == 1) 
+			  if (abs(check_car_lane_num - lane_num) == 1) 
 			  {
-				  if ( ((check_car_s > car_s) && abs(check_car_s - car_s) < 30) || 
-					  ((car_s > check_car_s) && abs(car_s - check_car_s) < 50))
+				  if ( ((check_car_s > car_s) && abs(check_car_s - car_s) < 30) ||
+					  ((car_s > check_car_s) && abs(car_s - check_car_s) < 15))
 				  {
 					  if (d > (4 + 4 * lane_num) && d < (4 + 4 * lane_num + 4))
 					  {
+						  //std::cout << "--- right_lane_occupied" << std::endl;
 						  right_lane_occupied = true;
 					  }
 					  if (d > (4 * lane_num - 4) && d < (4 * lane_num))
 					  {
+						  //std::cout << "--- left_lane_occupied" << std::endl;
 						  left_lane_occupied = true;
 					  }
 				  }
@@ -155,34 +155,32 @@ int main() {
 
 		  if (too_close)
 		  {
-			  if (prepare_lane_change)
-			  {
-				  if (!left_lane_occupied && lane_num > 0)
-				  {
-					  lane_num -= 1; // change to left lane
-				  }
-				  else if (!right_lane_occupied && lane_num < 2)
-				  {
-					  lane_num += 1;// change to right lane
-				  }
-				  else
-				  {
-					  ref_vel -= 0.224;
-					  if (ref_vel < check_car_speed)
-						  ref_vel = check_car_speed;
+			  if (ref_vel < check_car_speed)
+				  ref_vel = check_car_speed;
 
-					  left_lane_occupied = true;
-					  right_lane_occupied = true;
-					  prepare_lane_change = false;
-				  }
+			  //std::cout << "left_lane_occupied: " << left_lane_occupied << " right_lane_occupied: " << right_lane_occupied << " pre lane: " << lane_num;
+			  if (!left_lane_occupied && lane_num > 0)
+			  {
+				  lane_num -= 1; // change to left lane
 			  }
+			  else if (!right_lane_occupied && lane_num < 2)
+			  {
+				  lane_num += 1;// change to right lane
+			  }
+			  else
+			  {
+				  ref_vel -= 0.112;
+				  left_lane_occupied = true;
+				  right_lane_occupied = true;
+			  }
+			  //std::cout << " post lane: " << lane_num << std::endl;
 		  }
 		  else if (ref_vel < 49.5)
 		  {
 			  ref_vel += 0.224;
 		  }
-
-          json msgJson;
+		  
+		  json msgJson;
 
           vector<double> next_x_vals;
           vector<double> next_y_vals;
@@ -224,19 +222,16 @@ int main() {
 		  double lane_dist = 2 + (4 * lane_num);
 
 		  vector<double> next_wp0 = getXY(car_s + 30, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-		  vector<double> next_wp1 = getXY(car_s + 50, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-		  vector<double> next_wp2 = getXY(car_s + 70, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-		  vector<double> next_wp3 = getXY(car_s + 90, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+		  vector<double> next_wp1 = getXY(car_s + 60, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+		  vector<double> next_wp2 = getXY(car_s + 90, lane_dist, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
 		  ptsx.push_back(next_wp0[0]);
 		  ptsx.push_back(next_wp1[0]);
 		  ptsx.push_back(next_wp2[0]);
-		  ptsx.push_back(next_wp3[0]);
 
 		  ptsy.push_back(next_wp0[1]);
 		  ptsy.push_back(next_wp1[1]);
 		  ptsy.push_back(next_wp2[1]);
-		  ptsy.push_back(next_wp3[1]);
 
 		  for (int i = 0; i < ptsx.size(); i++)
 		  {
@@ -267,7 +262,7 @@ int main() {
 
 		  double x_add_on = 0.0;
 
-		  for (int i = 1; i <= 60-previous_path_x.size(); i++)
+		  for (int i = 1; i <= 50-previous_path_x.size(); i++)
 		  {
 			  double N = (target_dist / (0.02*ref_vel / 2.24));
 			  double x_point = x_add_on + (target_x) / N;
